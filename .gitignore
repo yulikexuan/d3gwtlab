@@ -48,7 +48,7 @@ war/WEB-INF/appengine-generated/
 
 # Maven Project Output Directory #
 target/
-/target/d3gwtlab-1.0.0/WEB-INF/**
+/target/**
 
 # Maven POMs #
 pom.xml.tag
@@ -114,5 +114,17 @@ mvnw.cmd
 *.ipr
 *.ids
 *.orig
+
+/.settings
+/target
+/.classpath
+/.project
+/pom.xml.releaseBackup
+/nbactions.xml
+/.gwt
+/.factorypath
+/pom.xml.next
+/pom.xml.tag
+/gwt-unitCache
 
 # End ------------------------------------------------------------------------ #
