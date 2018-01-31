@@ -55,6 +55,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.gwtbootstrap</groupId>
+            <artifactId>gwt-bootstrap</artifactId>
+            <version>2.3.2.0</version>
+            <scope>provided</scope>
+        </dependency>
+
 	    <dependency>
 		    <groupId>com.github.gwtd3</groupId>
 		    <artifactId>gwt-d3-api</artifactId>

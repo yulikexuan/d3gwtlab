@@ -127,4 +127,6 @@ mvnw.cmd
 /pom.xml.tag
 /gwt-unitCache
 
+${webappDirectory}/
+
 # End ------------------------------------------------------------------------ #
