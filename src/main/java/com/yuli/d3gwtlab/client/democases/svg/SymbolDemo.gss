@@ -1,0 +1,6 @@
+path.symboldemo {
+}
+
+a {
+	float: left;
+}

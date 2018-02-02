@@ -1,0 +1,36 @@
+@external axis, line;
+
+a {
+	float: left;
+}
+
+path.polarplotdemo {
+}
+
+text {
+	font-size: 12px;
+	fill: #4f442b;
+}
+
+.axis text {
+	font: 10px sans-serif;
+}
+
+.axis line,
+.axis circle {
+	fill: none;
+	stroke: gray;
+	stroke-dasharray: 4, 7;
+}
+
+.axis:last-of-type circle {
+	stroke: darkgray;
+	stroke-width: 2px;
+	stroke-dasharray: none;
+}
+
+.line {
+	fill: none;
+	stroke: #FF4400;
+	stroke-width: 2px;
+}
