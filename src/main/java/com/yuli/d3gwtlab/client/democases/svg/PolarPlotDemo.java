@@ -201,29 +201,22 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 								"rotate(180 " + (RADIUS + 6) + ", 0)" : null)
 				.text((e, d, i) -> d.asDouble() + "°");
 
-		this.colors = new String[] {
-				this.getColor(),
-				this.getColor(),
-		};
-
-		Vector[] vectors = {
-				new Vector(this.getMagnitude(),
-						angles[Random.nextInt(angles.length)], this.colors[0]),
-				new Vector(this.getMagnitude(),
-						angles[Random.nextInt(angles.length)], this.colors[1]),
-		};
+		Vector[] vectors = this.getVectors();
 
 		Selection vectorG = this.polarGroup.append("g")
 				.selectAll("g")
 				.data(vectors)
 				.enter()
 				.append("g")
-				.attr("transform", (e, data, i) -> "rotate(" +
-						data.as(Vector.class).getAngle() + ")")
 				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
 				.style("stroke", (e, data, i) ->
 						data.as(Vector.class).getColor())
 				.style("stroke-width", "2px");
+
+		vectorG.transition()
+				.duration(1000)
+				.attr("transform", (e, data, i) -> "rotate(" +
+						data.as(Vector.class).getAngle() + ")");
 
 		vectorG.append("line")
 				.attr("x2", (e, data, i) -> radiusScale.apply(
@@ -263,7 +256,30 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.style("fill", (e, data, i) ->
 						data.as(Vector.class).getColor());
 
+		// Update
+		Vector[] newVectors = this.getVectors();
+
+		vectorG.data(newVectors)
+				.transition()
+				.delay(2000)
+				.duration(1000)
+				.attr("transform", (e, data, i) -> "rotate(" +
+						data.as(Vector.class).getAngle() + ")");
+
 	}// End of drawPolarChart()
+
+	private Vector[] getVectors() {
+
+		int[] angles = {
+				Random.nextInt(360),
+				Random.nextInt(360),
+		};
+
+		return new Vector[] {
+				new Vector(this.getMagnitude(), angles[0], this.colors[0]),
+				new Vector(this.getMagnitude(), angles[1], this.colors[1]),
+		};
+	}
 
 	@Override
 	public void onClick(ClickEvent clickEvent) {
