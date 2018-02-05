@@ -106,22 +106,6 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				this.getColor(),
 		};
 
-//		Selection defsG = this.polarGroup.append("defs");
-//
-//		Selection markerG = defsG.append("marker")
-//				.attr("id", "arrow")
-//				.attr("markerUnits", "strokeWidth")
-//				.attr("markerWidth", "12")
-//				.attr("markerHeight", "12")
-//				.attr("viewBox", "0 0 12 12")
-//				.attr("refX", "6")
-//				.attr("refY", "6")
-//				.attr("orient", "auto");
-//
-//		markerG.append("path")
-//				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
-//				.style("fill", "FF4400");
-
 	}// End of PolarPlotDemo()
 
 	private String getColor() {
@@ -245,6 +229,22 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.attr("x2", (e, data, i) -> radiusScale.apply(
 						data.as(Vector.class).getMagnitude()).asDouble() - 8);
 
+		vectorG.append("text")
+				.attr("x", (e, d, i) -> radiusScale.apply(
+						d.as(Vector.class).getMagnitude()).asDouble() / 2)
+				.attr("dy", "-0.5em")
+				.style("text-anchor", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
+								"end" : null)
+				.attr("transform", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
+								"rotate(180 " + (radiusScale.apply(
+										d.as(Vector.class).getMagnitude()).asDouble() / 2) + ", 0)" : null)
+				.style("stroke-width", "1px")
+				.style("fill", "none")
+				.text((e, d, i) -> "Vector_" + i);
+
+		// Defines arrows
 		Selection defsG = this.polarGroup.append("defs");
 
 		Selection markerG = defsG.append("g").selectAll("g").data(vectors).enter()

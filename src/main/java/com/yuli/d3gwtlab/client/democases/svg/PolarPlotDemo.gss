@@ -8,7 +8,7 @@ path.polarplotdemo {
 }
 
 text {
-	font-size: 12px;
+    font: 11px Verdana;
 	fill: #4f442b;
 }
 
