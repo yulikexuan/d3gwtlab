@@ -106,21 +106,21 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				this.getColor(),
 		};
 
-		Selection defsG = this.polarGroup.append("defs");
-
-		Selection markerG = defsG.append("marker")
-				.attr("id", "arrow")
-				.attr("markerUnits", "strokeWidth")
-				.attr("markerWidth", "12")
-				.attr("markerHeight", "12")
-				.attr("viewBox", "0 0 12 12")
-				.attr("refX", "6")
-				.attr("refY", "6")
-				.attr("orient", "auto");
-
-		markerG.append("path")
-				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
-				.style("fill", "FF4400");
+//		Selection defsG = this.polarGroup.append("defs");
+//
+//		Selection markerG = defsG.append("marker")
+//				.attr("id", "arrow")
+//				.attr("markerUnits", "strokeWidth")
+//				.attr("markerWidth", "12")
+//				.attr("markerHeight", "12")
+//				.attr("viewBox", "0 0 12 12")
+//				.attr("refX", "6")
+//				.attr("refY", "6")
+//				.attr("orient", "auto");
+//
+//		markerG.append("path")
+//				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
+//				.style("fill", "FF4400");
 
 	}// End of PolarPlotDemo()
 
@@ -146,6 +146,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	@Override
 	public void stop() {
 		this.polarGroup.selectAll("g").remove();
+		this.polarGroup.selectAll("defs").remove();
 	}
 
 	private void drawPolarChart() {
@@ -216,6 +217,11 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 								"rotate(180 " + (RADIUS + 6) + ", 0)" : null)
 				.text((e, d, i) -> d.asDouble() + "°");
 
+		this.colors = new String[] {
+				this.getColor(),
+				this.getColor(),
+		};
+
 		Vector[] vectors = {
 				new Vector(this.getMagnitude(),
 						angles[Random.nextInt(angles.length)], this.colors[0]),
@@ -230,15 +236,32 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.append("g")
 				.attr("transform", (e, data, i) -> "rotate(" +
 						data.as(Vector.class).getAngle() + ")")
-				.attr("marker-end", "url(#arrow)")
+				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
 				.style("stroke", (e, data, i) ->
 						data.as(Vector.class).getColor())
 				.style("stroke-width", "2px");
 
 		vectorG.append("line")
-				.attr("x2", (e, data, i) ->
-						radiusScale.apply(data.as(Vector.class).getMagnitude())
-								.asDouble());
+				.attr("x2", (e, data, i) -> radiusScale.apply(
+						data.as(Vector.class).getMagnitude()).asDouble() - 8);
+
+		Selection defsG = this.polarGroup.append("defs");
+
+		Selection markerG = defsG.append("g").selectAll("g").data(vectors).enter()
+				.append("marker")
+				.attr("id", (e, data, i) -> "arrow" + i)
+				.attr("markerUnits", "strokeWidth")
+				.attr("markerWidth", "12")
+				.attr("markerHeight", "12")
+				.attr("viewBox", "0 0 12 12")
+				.attr("refX", "6")
+				.attr("refY", "6")
+				.attr("orient", "auto");
+
+		markerG.append("path")
+				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
+				.style("fill", (e, data, i) ->
+						data.as(Vector.class).getColor());
 
 	}// End of drawPolarChart()
 
