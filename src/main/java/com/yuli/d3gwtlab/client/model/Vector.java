@@ -43,11 +43,21 @@ public class Vector {
 		this.color = color;
 	}
 
+	public double getX() {
+		return this.magnitude * Math.cos(((this.angle * 3.1415927) / 180));
+	}
+
+	public double getY() {
+		return this.magnitude * Math.sin(((this.angle * 3.1415927) / 180));
+	}
+
 	@Override
 	public String toString() {
 		return "Vector{" +
 				"magnitude=" + magnitude +
 				", angle=" + angle +
+				", x2=" + this.getX() +
+				", y2=" + this.getY() +
 				'}';
 	}
 

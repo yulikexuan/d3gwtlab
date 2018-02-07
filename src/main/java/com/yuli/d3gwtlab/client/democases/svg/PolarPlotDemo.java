@@ -19,15 +19,19 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.CssResource;
 import com.google.gwt.user.client.Random;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.yuli.d3gwtlab.client.IDemoCase;
 import com.yuli.d3gwtlab.client.model.Vector;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 
 public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		ClickHandler {
+
+	private Selection vectorG;
 
 	interface ICSSResources extends CssResource {
 		String polarplotdemo();
@@ -45,12 +49,15 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	static final int RADIUS = Math.min(DEFAULT_WIDTH, DEFAULT_HEIGHT) / 2 - 30;
 
+	private LinearScale radiusScale;
+
 	private Selection polarGroup;
 
 	private final ICSSResources css;
 
 	private Button startButton;
 	private Button stopButton;
+	private Button updateButton;
 
 	private FlowPanel svgPanel;
 
@@ -72,9 +79,15 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		this.stopButton.setText("Clear");
 		this.stopButton.addClickHandler(this);
 
+		this.updateButton = new Button();
+		this.updateButton.setIcon(IconType.ADJUST);
+		this.updateButton.setText("Update");
+		this.updateButton.addClickHandler(this);
+
 		FlowPanel buttonPanel = new FlowPanel();
 		buttonPanel.add(this.startButton);
 		buttonPanel.add(this.stopButton);
+		buttonPanel.add(this.updateButton);
 
 		this.svgPanel = new FlowPanel();
 
@@ -116,36 +129,21 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	private double getMagnitude() {
 		double m = Random.nextDouble();
-		if (m < 0.5) {
+		if (m < 0.3) {
 			m += 0.5;
 		}
 		return m;
 	}
 
-	@Override
-	public void start() {
-		this.drawPolarChart();
-	}// End of start()
-
-	@Override
-	public void stop() {
-		this.polarGroup.selectAll("g").remove();
-		this.polarGroup.selectAll("defs").remove();
-	}
-
 	private void drawPolarChart() {
 
-		LinearScale radiusScale = D3.scale.linear()
+		this.radiusScale = D3.scale.linear()
 				.domain(0, 1.0)
 				.range(0, RADIUS);
 
-//		Array<Object> d = radiusScale.ticks(5).slice(1);
 		Array<Double> tickValues = radiusScale.ticks(10)
 				.filter((thisArg, element, index, array) -> index != 0 && index % 2 == 0)
 				.map((thisArg, element, index, array) -> element.asDouble());
-//		double[] ticks = {
-//			0.2, 0.4, 0.6, 0.8, 1.0,
-//		};
 
 		double[] radiusArr = {
 				radiusScale.apply(0.2).asDouble(),
@@ -170,9 +168,6 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.attr("transform", "rotate(15)")
 				.style("text-anchor", "middle")
 				.text((e, data, i) -> data.asString());
-
-//		OrdinalScale aAxisScale =  D3.scale.ordinal().rangeBands(
-//				0, 360, 30);
 
 		int[] angles = IntStream.rangeClosed(0, 330)
 				.filter(n -> n % 30 == 0)
@@ -203,7 +198,9 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 		Vector[] vectors = this.getVectors();
 
-		Selection vectorG = this.polarGroup.append("g")
+		Arrays.stream(vectors).forEach(v -> GWT.log(v.toString()));
+
+		this.vectorG = this.polarGroup.append("g")
 				.selectAll("g")
 				.data(vectors)
 				.enter()
@@ -213,16 +210,17 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 						data.as(Vector.class).getColor())
 				.style("stroke-width", "2px");
 
-		vectorG.transition()
+		this.vectorG.transition()
 				.duration(1000)
 				.attr("transform", (e, data, i) -> "rotate(" +
-						data.as(Vector.class).getAngle() + ")");
+						-data.as(Vector.class).getAngle() + ")");
 
-		vectorG.append("line")
-				.attr("x2", (e, data, i) -> radiusScale.apply(
+		this.vectorG.append("line")
+				.classed("needle", true)
+				.attr("x2", (e, data, i) -> this.radiusScale.apply(
 						data.as(Vector.class).getMagnitude()).asDouble() - 8);
 
-		vectorG.append("text")
+		this.vectorG.append("text")
 				.attr("x", (e, d, i) -> radiusScale.apply(
 						d.as(Vector.class).getMagnitude()).asDouble() / 2)
 				.attr("dy", "-0.5em")
@@ -256,19 +254,14 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.style("fill", (e, data, i) ->
 						data.as(Vector.class).getColor());
 
-		// Update
-		Vector[] newVectors = this.getVectors();
-
-		vectorG.data(newVectors)
-				.transition()
-				.delay(2000)
-				.duration(1000)
-				.attr("transform", (e, data, i) -> "rotate(" +
-						data.as(Vector.class).getAngle() + ")");
-
 	}// End of drawPolarChart()
 
 	private Vector[] getVectors() {
+
+		this.colors = new String[] {
+				this.getColor(),
+				this.getColor(),
+		};
 
 		int[] angles = {
 				Random.nextInt(360),
@@ -283,13 +276,61 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	@Override
 	public void onClick(ClickEvent clickEvent) {
-		if (clickEvent.getSource() == this.startButton) {
+		Object source = clickEvent.getSource();
+		if (source == this.startButton) {
 			if (this.polarGroup.selectAll("g").size() <= 0) {
 				this.drawPolarChart();
 			}
-		} else {
+		} else if (source == this.stopButton) {
 			this.stop();
+		} else {
+			this.update();
 		}
+
 	}// End of onClick(ClickEvent)
+
+	@Override
+	public void start() {
+		this.drawPolarChart();
+	}// End of start()
+
+	@Override
+	public void stop() {
+		this.polarGroup.selectAll("g").remove();
+		this.polarGroup.selectAll("defs").remove();
+	}
+
+	private void update() {
+
+		Vector[] vectors = this.getVectors();
+
+		Arrays.stream(vectors).forEach(v -> GWT.log(v.toString()));
+
+		GWT.log("x2 = " + this.radiusScale.apply(vectors[0].getX()).asDouble());
+
+		this.vectorG.data(vectors)
+				.transition()
+				.duration(700)
+				.attr("transform", (e, data, i) -> "rotate(" +
+						-data.as(Vector.class).getAngle() + ")")
+				.select("line")
+				.attr("x2", (e, data, i) -> this.radiusScale.apply(
+						data.as(Vector.class).getMagnitude()).asDouble() - 8);
+
+		this.vectorG.select("text")
+				.attr("x", (e, d, i) -> radiusScale.apply(
+						d.as(Vector.class).getMagnitude()).asDouble() / 2)
+				.style("text-anchor", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 &&
+								d.as(Vector.class).getAngle() > 90) ?
+								"end" : null)
+				.attr("transform", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 &&
+								d.as(Vector.class).getAngle() > 90) ?
+								"rotate(180 " + (this.radiusScale.apply(
+										d.as(Vector.class).getMagnitude())
+										.asDouble() / 2) + ", 0)" : null);
+
+	}// End of update()
 
 }///:~
