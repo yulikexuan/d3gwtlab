@@ -91,6 +91,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 		this.checkBox = new CheckBox();
 		this.checkBox.setValue(false);
+		this.checkBox.setEnabled(false);
 		this.checkBox.addValueChangeHandler(this);
 
 		FlowPanel buttonPanel = new FlowPanel();
@@ -290,6 +291,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		Object source = clickEvent.getSource();
 		if (source == this.startButton) {
 			if (this.polarGroup.selectAll("g").size() <= 0) {
+				this.checkBox.setEnabled(true);
 				this.drawPolarChart();
 			}
 		} else if (source == this.stopButton) {
@@ -308,6 +310,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	@Override
 	public void stop() {
 		this.checkBox.setValue(false, true);
+		this.checkBox.setEnabled(false);
 		this.polarGroup.selectAll("g").remove();
 		this.polarGroup.selectAll("defs").remove();
 

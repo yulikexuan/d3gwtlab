@@ -2,6 +2,7 @@
 
 a {
 	float: left;
+	margin-right: 4px;
 }
 
 path.polarplotdemo {
