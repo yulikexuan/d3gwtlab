@@ -16,10 +16,13 @@ import com.github.gwtd3.api.svg.Symbol;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.CssResource;
 import com.google.gwt.user.client.Random;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.yuli.d3gwtlab.client.IDemoCase;
 import com.yuli.d3gwtlab.client.model.Vector;
@@ -29,7 +32,7 @@ import java.util.stream.IntStream;
 
 
 public class PolarPlotDemo extends FlowPanel implements IDemoCase,
-		ClickHandler {
+		ClickHandler, ValueChangeHandler<Boolean> {
 
 	private Selection vectorG;
 
@@ -37,6 +40,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		String polarplotdemo();
 		String line();
 		String axis();
+		String control();
 	}
 
 	interface IResourceBundle extends ClientBundle {
@@ -58,6 +62,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	private Button startButton;
 	private Button stopButton;
 	private Button updateButton;
+	private CheckBox checkBox;
 
 	private FlowPanel svgPanel;
 
@@ -84,10 +89,16 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		this.updateButton.setText("Update");
 		this.updateButton.addClickHandler(this);
 
+		this.checkBox = new CheckBox();
+		this.checkBox.setValue(false);
+		this.checkBox.addValueChangeHandler(this);
+
 		FlowPanel buttonPanel = new FlowPanel();
 		buttonPanel.add(this.startButton);
 		buttonPanel.add(this.stopButton);
 		buttonPanel.add(this.updateButton);
+		buttonPanel.add(this.checkBox);
+		buttonPanel.addStyleName(this.css.control());
 
 		this.svgPanel = new FlowPanel();
 
@@ -231,7 +242,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
 								"rotate(180 " + (radiusScale.apply(
 										d.as(Vector.class).getMagnitude()).asDouble() / 2) + ", 0)" : null)
-				.style("stroke-width", "1px")
+				.style("stroke-width", "0px")
 				.style("fill", "none")
 				.text((e, d, i) -> "Vector_" + i);
 
@@ -296,11 +307,15 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	@Override
 	public void stop() {
+		this.checkBox.setValue(false, true);
 		this.polarGroup.selectAll("g").remove();
 		this.polarGroup.selectAll("defs").remove();
+
 	}
 
 	private void update() {
+
+		this.checkBox.setValue(false, true);
 
 		Vector[] vectors = this.getVectors();
 
@@ -332,5 +347,16 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 										.asDouble() / 2) + ", 0)" : null);
 
 	}// End of update()
+
+	@Override
+	public void onValueChange(ValueChangeEvent<Boolean> event) {
+		this.setLabelVisible(event.getValue());
+	}
+
+	private void setLabelVisible(boolean visible) {
+		String strokeWidth = visible ? "1px" : "0px";
+		this.vectorG.select("text")
+				.style("stroke-width", strokeWidth);
+	}
 
 }///:~

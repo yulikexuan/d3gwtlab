@@ -34,3 +34,13 @@ text {
 	stroke: #FF4400;
 	stroke-width: 2px;
 }
+
+.control {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.control input {
+    margin-right: 10px;
+    float: right;
+}
