@@ -315,7 +315,14 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	private void update() {
 
-		this.checkBox.setValue(false, true);
+		this.checkBox.setValue(false);
+
+		this.vectorG.select("text")
+				.style("stroke-width", "0px");
+
+		if (this.polarGroup.select("g").size() == 0) {
+			return;
+		}
 
 		Vector[] vectors = this.getVectors();
 
@@ -356,6 +363,8 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	private void setLabelVisible(boolean visible) {
 		String strokeWidth = visible ? "1px" : "0px";
 		this.vectorG.select("text")
+				.transition()
+				.duration(300)
 				.style("stroke-width", strokeWidth);
 	}
 
