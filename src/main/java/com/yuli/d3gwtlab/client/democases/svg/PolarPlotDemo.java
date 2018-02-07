@@ -117,11 +117,12 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		Symbol symbol = D3.svg()
 				.symbol()
 				.type(Symbol.Type.CIRCLE)
-				.size(25);
+				.size(16);
 
 		this.polarGroup.append("path")
+				.attr("id", "core")
 				.attr("d", symbol.generate(1.0))
-				.style("fill", this.getColor());
+				.style("fill", "#42494F");
 
 		this.add(this.svgPanel);
 		this.add(buttonPanel);
