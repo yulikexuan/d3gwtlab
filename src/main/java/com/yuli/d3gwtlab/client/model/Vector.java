@@ -9,14 +9,27 @@ import java.util.Objects;
 
 public class Vector {
 
+	private String desc;
 	private double magnitude;
 	private int angle;
 	private String color;
+	private int index;
 
-	public Vector(double magnitude, int angle, String color) {
+	public Vector(String desc, int index, double magnitude, int angle,
+	              String color) {
+		this.desc = desc;
+		this.index = index;
 		this.magnitude = magnitude;
 		this.angle = angle;
 		this.color = color;
+	}
+
+	public String getDesc() {
+		return desc;
+	}
+
+	public void setDesc(String desc) {
+		this.desc = desc;
 	}
 
 	public double getMagnitude() {
@@ -43,22 +56,29 @@ public class Vector {
 		this.color = color;
 	}
 
-	public double getX() {
-		return this.magnitude * Math.cos(((this.angle * 3.1415927) / 180));
+	public int getIndex() {
+		return index;
 	}
 
-	public double getY() {
-		return this.magnitude * Math.sin(((this.angle * 3.1415927) / 180));
+	public void setIndex(int index) {
+		this.index = index;
 	}
 
 	@Override
 	public String toString() {
-		return "Vector{" +
-				"magnitude=" + magnitude +
-				", angle=" + angle +
-				", x2=" + this.getX() +
-				", y2=" + this.getY() +
-				'}';
+
+		StringBuffer toStrBuilder = new StringBuffer();
+		toStrBuilder.append(this.desc)
+				.append(": ")
+				.append(this.index)
+				.append(" - ")
+				.append(this.magnitude)
+				.append("/")
+				.append(this.angle)
+				.append(" - ")
+				.append(this.color);
+
+		return toStrBuilder.toString();
 	}
 
 	@Override

@@ -11,47 +11,62 @@ import com.github.gwtd3.api.D3;
 import com.github.gwtd3.api.arrays.Array;
 import com.github.gwtd3.api.core.Selection;
 import com.github.gwtd3.api.scales.LinearScale;
-import com.github.gwtd3.api.scales.OrdinalScale;
 import com.github.gwtd3.api.svg.Symbol;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.MouseOverEvent;
+import com.google.gwt.event.dom.client.MouseOverHandler;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.CssResource;
 import com.google.gwt.user.client.Random;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
 import com.yuli.d3gwtlab.client.IDemoCase;
 import com.yuli.d3gwtlab.client.model.Vector;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
 public class PolarPlotDemo extends FlowPanel implements IDemoCase,
-		ClickHandler, ValueChangeHandler<Boolean> {
+		ClickHandler, ValueChangeHandler<Boolean>, MouseOverHandler {
 
-	private Selection vectorG;
+	private Selection defsG;
 
 	interface ICSSResources extends CssResource {
+
 		String polarplotdemo();
 		String line();
 		String axis();
 		String control();
+		String vector1();
+		String vector2();
 	}
-
 	interface IResourceBundle extends ClientBundle {
 
-		IResourceBundle RESOURCE_BUNDLE = GWT.create(IResourceBundle.class);
 
+		IResourceBundle RESOURCE_BUNDLE = GWT.create(IResourceBundle.class);
 		@Source("PolarPlotDemo.gss")
 		ICSSResources css();
+
 	}
 
 	static final int RADIUS = Math.min(DEFAULT_WIDTH, DEFAULT_HEIGHT) / 2 - 30;
+
+	static final String COLOR_RED = "#FF4400";
+	static final String COLOR_BLUE = "#3333FF";
+
+	static final String DESC_1 = "V-1";
+	static final String DESC_2 = "V-2";
+
+	private Vector[] vectors;
 
 	private LinearScale radiusScale;
 
@@ -63,6 +78,10 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	private Button stopButton;
 	private Button updateButton;
 	private CheckBox checkBox;
+
+	private Selection vectorG;
+	private final HTML vector1;
+	private final HTML vector2;
 
 	private FlowPanel svgPanel;
 
@@ -77,29 +96,43 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		this.startButton = new Button();
 		this.startButton.setIcon(IconType.PLUS_SIGN);
 		this.startButton.setText("Draw");
+		this.startButton.setTabIndex(100);
 		this.startButton.addClickHandler(this);
 
 		this.stopButton = new Button();
 		this.stopButton.setIcon(IconType.REMOVE);
 		this.stopButton.setText("Clear");
+		this.stopButton.setTabIndex(101);
 		this.stopButton.addClickHandler(this);
 
 		this.updateButton = new Button();
 		this.updateButton.setIcon(IconType.ADJUST);
 		this.updateButton.setText("Update");
+		this.updateButton.setTabIndex(102);
 		this.updateButton.addClickHandler(this);
 
-		this.checkBox = new CheckBox();
+		this.checkBox = new CheckBox("Labels");
 		this.checkBox.setValue(false);
 		this.checkBox.setEnabled(false);
+		this.checkBox.setTabIndex(110);
 		this.checkBox.addValueChangeHandler(this);
 
-		FlowPanel buttonPanel = new FlowPanel();
-		buttonPanel.add(this.startButton);
-		buttonPanel.add(this.stopButton);
-		buttonPanel.add(this.updateButton);
-		buttonPanel.add(this.checkBox);
-		buttonPanel.addStyleName(this.css.control());
+		FlowPanel controlPanel = new FlowPanel();
+		controlPanel.add(this.startButton);
+		controlPanel.add(this.stopButton);
+		controlPanel.add(this.updateButton);
+		controlPanel.add(this.checkBox);
+		controlPanel.addStyleName(this.css.control());
+
+		vector1 = new HTML(DESC_1);
+		vector1.addStyleName(this.css.vector1());
+		vector1.addMouseOverHandler(this);
+		vector2 = new HTML(DESC_2);
+		vector2.addStyleName(this.css.vector2());
+		vector2.addMouseOverHandler(this);
+		FlowPanel legendPanel = new FlowPanel();
+		legendPanel.add(vector1);
+		legendPanel.add(vector2);
 
 		this.svgPanel = new FlowPanel();
 
@@ -114,18 +147,9 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 						DEFAULT_WIDTH / 2 + "," +
 						DEFAULT_HEIGHT / 2 + ")");
 
-		Symbol symbol = D3.svg()
-				.symbol()
-				.type(Symbol.Type.CIRCLE)
-				.size(16);
-
-		this.polarGroup.append("path")
-				.attr("id", "core")
-				.attr("d", symbol.generate(1.0))
-				.style("fill", "#42494F");
-
 		this.add(this.svgPanel);
-		this.add(buttonPanel);
+		this.add(controlPanel);
+		this.add(legendPanel);
 
 		this.colors = new String[] {
 				this.getColor(),
@@ -209,16 +233,17 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 								"rotate(180 " + (RADIUS + 6) + ", 0)" : null)
 				.text((e, d, i) -> d.asDouble() + "°");
 
-		Vector[] vectors = this.getVectors();
+		this.vectors = this.getVectors();
 
-		Arrays.stream(vectors).forEach(v -> GWT.log(v.toString()));
+		Arrays.stream(this.vectors).forEach(v -> GWT.log(v.toString()));
 
 		this.vectorG = this.polarGroup.append("g")
 				.selectAll("g")
-				.data(vectors)
+				.data(this.vectors)
 				.enter()
 				.append("g")
 				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
+//				.sort(Comparator.comparing(v -> v.as(Vector.class).getIndex()))
 				.style("stroke", (e, data, i) ->
 						data.as(Vector.class).getColor())
 				.style("stroke-width", "2px");
@@ -246,12 +271,15 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 										d.as(Vector.class).getMagnitude()).asDouble() / 2) + ", 0)" : null)
 				.style("stroke-width", "0px")
 				.style("fill", "none")
-				.text((e, d, i) -> "Vector_" + i);
+				.text((e, d, i) -> d.as(Vector.class).getDesc());
 
 		// Defines arrows
-		Selection defsG = this.polarGroup.append("defs");
+		defsG = this.polarGroup.append("defs");
 
-		Selection markerG = defsG.append("g").selectAll("g").data(vectors).enter()
+		Selection markerG = defsG.append("g")
+				.selectAll("g")
+				.data(this.vectors)
+				.enter()
 				.append("marker")
 				.attr("id", (e, data, i) -> "arrow" + i)
 				.attr("markerUnits", "strokeWidth")
@@ -267,13 +295,24 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.style("fill", (e, data, i) ->
 						data.as(Vector.class).getColor());
 
+		// Add the core
+		Symbol symbol = D3.svg()
+				.symbol()
+				.type(Symbol.Type.CIRCLE)
+				.size(25);
+
+		this.polarGroup.append("g")
+				.append("path")
+				.attr("id", "core")
+				.attr("d", symbol.generate(1.0))
+				.style("fill", "#32393F");
+
 	}// End of drawPolarChart()
 
 	private Vector[] getVectors() {
 
 		this.colors = new String[] {
-				this.getColor(),
-				this.getColor(),
+				COLOR_RED, COLOR_BLUE,
 		};
 
 		int[] angles = {
@@ -282,8 +321,10 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		};
 
 		return new Vector[] {
-				new Vector(this.getMagnitude(), angles[0], this.colors[0]),
-				new Vector(this.getMagnitude(), angles[1], this.colors[1]),
+				new Vector(DESC_1, 0, this.getMagnitude(), 30,
+						this.colors[0]),
+				new Vector(DESC_2, 0, this.getMagnitude(), 30,
+						this.colors[1]),
 		};
 	}
 
@@ -328,13 +369,11 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 			return;
 		}
 
-		Vector[] vectors = this.getVectors();
+		this.vectors = this.getVectors();
 
-		Arrays.stream(vectors).forEach(v -> GWT.log(v.toString()));
+		Arrays.stream(this.vectors).forEach(v -> GWT.log(v.toString()));
 
-		GWT.log("x2 = " + this.radiusScale.apply(vectors[0].getX()).asDouble());
-
-		this.vectorG.data(vectors)
+		this.vectorG.data(this.vectors)
 				.transition()
 				.duration(700)
 				.attr("transform", (e, data, i) -> "rotate(" +
@@ -362,6 +401,90 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	@Override
 	public void onValueChange(ValueChangeEvent<Boolean> event) {
 		this.setLabelVisible(event.getValue());
+	}
+
+	@Override
+	public void onMouseOver(MouseOverEvent event) {
+		String desc = event.getSource() == this.vector1 ? DESC_1 : DESC_2;
+		this.sortVectors(desc);
+	}
+
+	private void sortVectors(String desc) {
+
+		if (this.polarGroup.select("g").size() == 0) {
+			return;
+		}
+
+		Arrays.stream(this.vectors).forEach(v -> {
+			if (v.getDesc().equals(desc)) {
+				v.setIndex(10);
+			} else {
+				v.setIndex(0);
+			}
+		});
+
+		List<Vector> vs = Arrays.stream(this.vectors)
+				.sorted(Comparator.comparing(v -> v.getIndex()))
+				.collect(Collectors.toList());
+
+		this.vectors = vs.toArray(this.vectors);
+
+		this.vectorG.data(new Vector[] {}).exit().remove();
+		this.polarGroup.select("defs").remove();
+
+		this.vectorG = this.polarGroup.append("g")
+				.selectAll("g").data(this.vectors)
+				.enter()
+				.append("g")
+				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
+				.style("stroke", (e, data, i) ->
+						data.as(Vector.class).getColor())
+				.style("stroke-width", "2px");
+
+		this.vectorG.attr("transform", (e, data, i) -> "rotate(" +
+						-data.as(Vector.class).getAngle() + ")");
+
+		this.vectorG.append("line")
+				.classed("needle", true)
+				.attr("x2", (e, data, i) -> this.radiusScale.apply(
+						data.as(Vector.class).getMagnitude()).asDouble() - 8);
+
+		this.vectorG.append("text")
+				.attr("x", (e, d, i) -> radiusScale.apply(
+						d.as(Vector.class).getMagnitude()).asDouble() / 2)
+				.attr("dy", "-0.5em")
+				.style("text-anchor", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
+								"end" : null)
+				.attr("transform", (e, d, i) ->
+						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
+								"rotate(180 " + (radiusScale.apply(
+										d.as(Vector.class).getMagnitude()).asDouble() / 2) + ", 0)" : null)
+				.style("stroke-width", "0px")
+				.style("fill", "none")
+				.text((e, d, i) -> d.as(Vector.class).getDesc());
+
+		// Defines arrows
+		defsG = this.polarGroup.append("defs");
+
+		Selection markerG = defsG.append("g")
+				.selectAll("g")
+				.data(this.vectors)
+				.enter()
+				.append("marker")
+				.attr("id", (e, data, i) -> "arrow" + i)
+				.attr("markerUnits", "strokeWidth")
+				.attr("markerWidth", "12")
+				.attr("markerHeight", "12")
+				.attr("viewBox", "0 0 12 12")
+				.attr("refX", "6")
+				.attr("refY", "6")
+				.attr("orient", "auto");
+
+		markerG.append("path")
+				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
+				.style("fill", (e, data, i) ->
+						data.as(Vector.class).getColor());
 	}
 
 	private void setLabelVisible(boolean visible) {
