@@ -13,10 +13,7 @@ import com.github.gwtd3.api.core.Selection;
 import com.github.gwtd3.api.scales.LinearScale;
 import com.github.gwtd3.api.svg.Symbol;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.MouseOverEvent;
-import com.google.gwt.event.dom.client.MouseOverHandler;
+import com.google.gwt.event.dom.client.*;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.resources.client.ClientBundle;
@@ -30,19 +27,17 @@ import com.yuli.d3gwtlab.client.model.Vector;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
 public class PolarPlotDemo extends FlowPanel implements IDemoCase,
-		ClickHandler, ValueChangeHandler<Boolean>, MouseOverHandler {
-
-	private Selection defsG;
+		ClickHandler, ValueChangeHandler<Boolean>, MouseOverHandler,
+		MouseOutHandler {
 
 	interface ICSSResources extends CssResource {
 
 		String polarplotdemo();
+
 		String line();
 		String axis();
 		String control();
@@ -67,6 +62,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 	static final String DESC_2 = "V-2";
 
 	private Vector[] vectors;
+	private Selection defsG;
 
 	private LinearScale radiusScale;
 
@@ -124,15 +120,17 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		controlPanel.add(this.checkBox);
 		controlPanel.addStyleName(this.css.control());
 
-		vector1 = new HTML(DESC_1);
-		vector1.addStyleName(this.css.vector1());
-		vector1.addMouseOverHandler(this);
-		vector2 = new HTML(DESC_2);
-		vector2.addStyleName(this.css.vector2());
-		vector2.addMouseOverHandler(this);
+		this.vector1 = new HTML(DESC_1);
+		this.vector1.addStyleName(this.css.vector1());
+		this.vector1.addMouseOverHandler(this);
+		this.vector1.addMouseOutHandler(this);
+		this.vector2 = new HTML(DESC_2);
+		this.vector2.addStyleName(this.css.vector2());
+		this.vector2.addMouseOverHandler(this);
+		this.vector2.addMouseOutHandler(this);
 		FlowPanel legendPanel = new FlowPanel();
-		legendPanel.add(vector1);
-		legendPanel.add(vector2);
+		legendPanel.add(this.vector1);
+		legendPanel.add(this.vector2);
 
 		this.svgPanel = new FlowPanel();
 
@@ -242,7 +240,10 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.data(this.vectors)
 				.enter()
 				.append("g")
-				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
+				.attr("id", (e, data, i) ->
+						"vg-" + data.as(Vector.class).getDesc())
+				.attr("marker-end", (e, data, i) ->
+						"url(#arrow" + data.as(Vector.class).getDesc() +  ")")
 //				.sort(Comparator.comparing(v -> v.as(Vector.class).getIndex()))
 				.style("stroke", (e, data, i) ->
 						data.as(Vector.class).getColor())
@@ -281,7 +282,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 				.data(this.vectors)
 				.enter()
 				.append("marker")
-				.attr("id", (e, data, i) -> "arrow" + i)
+				.attr("id", (e, data, i) -> "arrow" + data.as(Vector.class).getDesc())
 				.attr("markerUnits", "strokeWidth")
 				.attr("markerWidth", "12")
 				.attr("markerHeight", "12")
@@ -309,21 +310,31 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 
 	}// End of drawPolarChart()
 
+	private int[] getAngles() {
+
+		if (Random.nextInt() % 3 == 0) {
+			int angle = Random.nextInt(360);
+			return new int[] {angle, angle};
+		} else {
+			return new int[] {
+					Random.nextInt(360),
+					Random.nextInt(360),
+			};
+		}
+	}
+
 	private Vector[] getVectors() {
 
 		this.colors = new String[] {
 				COLOR_RED, COLOR_BLUE,
 		};
 
-		int[] angles = {
-				Random.nextInt(360),
-				Random.nextInt(360),
-		};
+		int[] angles = this.getAngles();
 
 		return new Vector[] {
-				new Vector(DESC_1, 0, this.getMagnitude(), 30,
+				new Vector(DESC_1, 0, this.getMagnitude(), angles[0],
 						this.colors[0]),
-				new Vector(DESC_2, 0, this.getMagnitude(), 30,
+				new Vector(DESC_2, 0, this.getMagnitude(), angles[1],
 						this.colors[1]),
 		};
 	}
@@ -383,7 +394,7 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 						data.as(Vector.class).getMagnitude()).asDouble() - 8);
 
 		this.vectorG.select("text")
-				.attr("x", (e, d, i) -> radiusScale.apply(
+				.attr("x", (e, d, i) -> this.radiusScale.apply(
 						d.as(Vector.class).getMagnitude()).asDouble() / 2)
 				.style("text-anchor", (e, d, i) ->
 						(d.as(Vector.class).getAngle() < 270 &&
@@ -409,6 +420,14 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 		this.sortVectors(desc);
 	}
 
+	@Override
+	public void onMouseOut(MouseOutEvent event) {
+		this.vectorG.select("text")
+				.transition()
+				.duration(300)
+				.style("stroke-width", "0px");
+	}
+
 	private void sortVectors(String desc) {
 
 		if (this.polarGroup.select("g").size() == 0) {
@@ -423,68 +442,15 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 			}
 		});
 
-		List<Vector> vs = Arrays.stream(this.vectors)
-				.sorted(Comparator.comparing(v -> v.getIndex()))
-				.collect(Collectors.toList());
+		this.vectorG.sort(Comparator.comparing(
+				v -> v.as(Vector.class).getIndex()));
 
-		this.vectors = vs.toArray(this.vectors);
-
-		this.vectorG.data(new Vector[] {}).exit().remove();
-		this.polarGroup.select("defs").remove();
-
-		this.vectorG = this.polarGroup.append("g")
-				.selectAll("g").data(this.vectors)
-				.enter()
-				.append("g")
-				.attr("marker-end", (e, data, i) -> "url(#arrow" + i +  ")")
-				.style("stroke", (e, data, i) ->
-						data.as(Vector.class).getColor())
-				.style("stroke-width", "2px");
-
-		this.vectorG.attr("transform", (e, data, i) -> "rotate(" +
-						-data.as(Vector.class).getAngle() + ")");
-
-		this.vectorG.append("line")
-				.classed("needle", true)
-				.attr("x2", (e, data, i) -> this.radiusScale.apply(
-						data.as(Vector.class).getMagnitude()).asDouble() - 8);
-
-		this.vectorG.append("text")
-				.attr("x", (e, d, i) -> radiusScale.apply(
-						d.as(Vector.class).getMagnitude()).asDouble() / 2)
-				.attr("dy", "-0.5em")
-				.style("text-anchor", (e, d, i) ->
-						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
-								"end" : null)
-				.attr("transform", (e, d, i) ->
-						(d.as(Vector.class).getAngle() < 270 && d.as(Vector.class).getAngle() > 90) ?
-								"rotate(180 " + (radiusScale.apply(
-										d.as(Vector.class).getMagnitude()).asDouble() / 2) + ", 0)" : null)
-				.style("stroke-width", "0px")
-				.style("fill", "none")
-				.text((e, d, i) -> d.as(Vector.class).getDesc());
-
-		// Defines arrows
-		defsG = this.polarGroup.append("defs");
-
-		Selection markerG = defsG.append("g")
-				.selectAll("g")
-				.data(this.vectors)
-				.enter()
-				.append("marker")
-				.attr("id", (e, data, i) -> "arrow" + i)
-				.attr("markerUnits", "strokeWidth")
-				.attr("markerWidth", "12")
-				.attr("markerHeight", "12")
-				.attr("viewBox", "0 0 12 12")
-				.attr("refX", "6")
-				.attr("refY", "6")
-				.attr("orient", "auto");
-
-		markerG.append("path")
-				.attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
-				.style("fill", (e, data, i) ->
-						data.as(Vector.class).getColor());
+		this.vectorG.select("text")
+				.transition()
+				.duration(300)
+				.style("stroke-width", (e, d, i) ->
+						(d.as(Vector.class).getDesc().equals(desc)) ?
+								"1px" : "0px");
 	}
 
 	private void setLabelVisible(boolean visible) {
