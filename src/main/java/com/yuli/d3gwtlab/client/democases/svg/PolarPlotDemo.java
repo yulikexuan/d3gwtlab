@@ -380,12 +380,19 @@ public class PolarPlotDemo extends FlowPanel implements IDemoCase,
 			return;
 		}
 
-		this.vectors = this.getVectors();
+//		this.vectors = this.getVectors();
+		int[] angles = this.getAngles();
+
+		this.vectors[0].setAngle(angles[0]);
+		this.vectors[0].setMagnitude(this.getMagnitude());
+
+		this.vectors[1].setAngle(angles[1]);
+		this.vectors[1].setMagnitude(this.getMagnitude());
 
 		Arrays.stream(this.vectors).forEach(v -> GWT.log(v.toString()));
 
-		this.vectorG.data(this.vectors)
-				.transition()
+//		this.vectorG.data(this.vectors)
+		this.vectorG.transition()
 				.duration(700)
 				.attr("transform", (e, data, i) -> "rotate(" +
 						-data.as(Vector.class).getAngle() + ")")
